@@ -218,6 +218,12 @@ button{
       <input id="refill_delay" type="number" value="20">
     </div>
 
+    <!-- ✅ NEW INPUT -->
+    <div>
+      <label>Missed Lab Tests</label>
+      <input id="missed_labs" type="number" value="1" min="0">
+    </div>
+
     <div>
       <label>Days Since Last Contact</label>
       <input id="days_since" readonly>
@@ -257,22 +263,14 @@ button{
   <h3>Recommended Actions</h3>
 
   <div class="reco-card">
-
-    <!-- Quote before prediction -->
     <p class="footer-note" id="preQuote">
       “Patients rarely disengage suddenly — recognizing early signals gives us the opportunity to intervene before care is lost.”
     </p>
 
     <div class="reco-alert" id="recoAlert"></div>
     <ul class="reco-list" id="recoList"></ul>
-
   </div>
 </div>
-
-<!-- GLOBAL FOOTER NOTE -->
-<p class="footer-note" style="text-align:center; max-width:1000px; margin:10px auto 30px;">
-  This is a minimal dashboard view showing the key data and dropout risk for a single patient.
-</p>
 
 </div>
 
@@ -288,6 +286,7 @@ function predict(){
   const expected=+document.getElementById("expected_gap").value;
   const since=+document.getElementById("days_since").value;
   const late=Math.max(since-expected,0);
+  const missedLabs=+document.getElementById("missed_labs").value;
 
   document.getElementById("pname").innerText=document.getElementById("name").value;
 
@@ -296,7 +295,7 @@ function predict(){
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
       refill_delay:+document.getElementById("refill_delay").value,
-      missed_labs:1,
+      missed_labs:missedLabs,
       days_late_followup:late,
       days_since_contact:since
     })
