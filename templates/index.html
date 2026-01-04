@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Silent Dropout Patient Detector</title>
+
+<!-- Font Awesome -->
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+/>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#f6f7f9;
+  color:#111;
+}
+
+/* HEADER */
+.header{
+  padding:20px 40px;
+  background:#fff;
+  border-bottom:1px solid #e5e7eb;
+}
+.logo{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.hospital-icon{
+  font-size:28px;
+  color:#2563eb;
+}
+.title-block h1{
+  margin:0;
+  font-size:22px;
+}
+.title-block p{
+  margin:4px 0 0;
+  color:#6b7280;
+  font-size:14px;
+}
+
+/* CONTAINER */
+.container{
+  max-width:1000px;
+  margin:30px auto;
+}
+
+/* SECTION */
+.section{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:6px;
+  margin-bottom:25px;
+  padding:20px;
+}
+
+/* FORM */
+.form-grid{
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr;
+  gap:20px;
+}
+label{font-size:13px;color:#374151}
+input{
+  width:100%;
+  padding:8px;
+  margin-top:5px;
+  border:1px solid #d1d5db;
+  border-radius:4px;
+}
+input[readonly]{background:#f3f4f6}
+
+button{
+  margin-top:20px;
+  padding:10px 16px;
+  background:#2563eb;
+  color:#fff;
+  border:none;
+  border-radius:4px;
+  cursor:pointer;
+}
+
+/* METRICS */
+.metrics{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:15px;
+}
+.metric{
+  border:1px solid #e5e7eb;
+  border-radius:6px;
+  padding:15px;
+  text-align:center;
+}
+.metric h2{margin:10px 0 0}
+
+/* SCORE */
+.score-row{
+  display:flex;
+  align-items:center;
+  gap:15px;
+}
+.bar{
+  flex:1;
+  height:16px;
+  border-radius:10px;
+  background:linear-gradient(to right,#22c55e,#facc15,#ef4444);
+  position:relative;
+}
+.pointer{
+  position:absolute;
+  top:-4px;
+  width:6px;
+  height:24px;
+  background:#111;
+}
+
+/* BADGE */
+.badge{
+  padding:6px 14px;
+  border-radius:20px;
+  font-weight:bold;
+}
+.high{background:#fee2e2;color:#b91c1c}
+.medium{background:#fef3c7;color:#92400e}
+.low{background:#dcfce7;color:#166534}
+
+/* RECOMMENDATIONS */
+.reco-card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:6px;
+  padding:15px;
+}
+.reco-alert{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px;
+  border-radius:6px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+.reco-alert.high{
+  background:#fee2e2;
+  border:1px solid #fca5a5;
+  color:#991b1b;
+}
+.reco-alert.medium{
+  background:#fffbeb;
+  border:1px solid #fde68a;
+  color:#92400e;
+}
+.reco-alert.low{
+  background:#ecfdf5;
+  border:1px solid #6ee7b7;
+  color:#065f46;
+}
+.reco-list{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px 40px;
+  padding-left:20px;
+}
+.reco-list li{font-size:14px}
+
+.footer-note{
+  font-size:13px;
+  color:#6b7280;
+  margin-top:10px;
+  font-style:italic;
+}
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <i class="fas fa-hospital hospital-icon"></i>
+    <div class="title-block">
+      <h1>Silent Dropout Patient Detector</h1>
+      <p>Detect silent dropout risk for a single patient</p>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ENTER PATIENT DETAILS -->
+<div class="section">
+  <h3>Enter Patient Details</h3>
+
+  <div class="form-grid">
+    <div>
+      <label>Patient Name</label>
+      <input id="name" value="John Doe">
+    </div>
+
+    <div>
+      <label>Last Follow-Up Date</label>
+      <input id="last_date" type="date" onchange="calcDays()">
+    </div>
+
+    <div>
+      <label>Expected Gap Between Visits (days)</label>
+      <input id="expected_gap" type="number" value="30">
+    </div>
+
+    <div>
+      <label>Medicine Refill Delay (days)</label>
+      <input id="refill_delay" type="number" value="20">
+    </div>
+
+    <div>
+      <label>Days Since Last Contact</label>
+      <input id="days_since" readonly>
+    </div>
+  </div>
+
+  <button onclick="predict()">Detect Risk</button>
+</div>
+
+<!-- PATIENT SUMMARY -->
+<div class="section">
+  <h3>Patient: <span id="pname">John Doe</span></h3>
+
+  <div class="metrics">
+    <div class="metric"><small>Days Late Follow-Up</small><h2 id="late">-</h2></div>
+    <div class="metric"><small>Medicine Refill Delay</small><h2 id="refill">-</h2></div>
+    <div class="metric"><small>Missed Lab Tests</small><h2 id="labs">-</h2></div>
+    <div class="metric"><small>Days Since Last Contact</small><h2 id="contact">-</h2></div>
+  </div>
+</div>
+
+<!-- SCORE -->
+<div class="section">
+  <h3>Silent Dropout Score</h3>
+
+  <div class="score-row">
+    <b>Score: <span id="score">-</span></b>
+    <div class="bar">
+      <div class="pointer" id="pointer"></div>
+    </div>
+    <span id="risk" class="badge">-</span>
+  </div>
+</div>
+
+<!-- RECOMMENDED ACTIONS -->
+<div class="section">
+  <h3>Recommended Actions</h3>
+
+  <div class="reco-card">
+
+    <!-- Quote before prediction -->
+    <p class="footer-note" id="preQuote">
+      “Patients rarely disengage suddenly — recognizing early signals gives us the opportunity to intervene before care is lost.”
+    </p>
+
+    <div class="reco-alert" id="recoAlert"></div>
+    <ul class="reco-list" id="recoList"></ul>
+
+  </div>
+</div>
+
+<!-- GLOBAL FOOTER NOTE -->
+<p class="footer-note" style="text-align:center; max-width:1000px; margin:10px auto 30px;">
+  This is a minimal dashboard view showing the key data and dropout risk for a single patient.
+</p>
+
+</div>
+
+<script>
+function calcDays(){
+  const d=document.getElementById("last_date").value;
+  if(!d) return;
+  const diff=(new Date()-new Date(d))/(1000*60*60*24);
+  document.getElementById("days_since").value=Math.floor(diff);
+}
+
+function predict(){
+  const expected=+document.getElementById("expected_gap").value;
+  const since=+document.getElementById("days_since").value;
+  const late=Math.max(since-expected,0);
+
+  document.getElementById("pname").innerText=document.getElementById("name").value;
+
+  fetch("/predict",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      refill_delay:+document.getElementById("refill_delay").value,
+      missed_labs:1,
+      days_late_followup:late,
+      days_since_contact:since
+    })
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    document.getElementById("preQuote").style.display="none";
+
+    document.getElementById("late").innerText=late;
+    document.getElementById("refill").innerText=d.refill_delay;
+    document.getElementById("labs").innerText=d.missed_labs;
+    document.getElementById("contact").innerText=d.days_since_contact;
+    document.getElementById("score").innerText=d.score;
+
+    const risk=document.getElementById("risk");
+    risk.innerText=d.risk;
+    risk.className="badge "+d.risk.toLowerCase();
+
+    document.getElementById("pointer").style.left=
+      d.risk==="HIGH"?"85%":d.risk==="MEDIUM"?"55%":"25%";
+
+    const alert=document.getElementById("recoAlert");
+    const list=document.getElementById("recoList");
+
+    alert.className="reco-alert "+d.risk.toLowerCase();
+
+    if(d.risk==="HIGH"){
+      alert.innerHTML="🚨 High Dropout Risk! Immediate intervention needed.";
+      list.innerHTML=`
+        <li>Call patient</li>
+        <li>Offer tele-consult</li>
+        <li>Send reminder</li>
+        <li>Ensure medication adherence</li>
+      `;
+    }
+    else if(d.risk==="MEDIUM"){
+      alert.innerHTML="⚠ Moderate Dropout Risk! Preventive action recommended.";
+      list.innerHTML=`
+        <li>Send follow-up reminder</li>
+        <li>Monitor engagement</li>
+        <li>Encourage lab completion</li>
+        <li>Review care instructions</li>
+      `;
+    }
+    else{
+      alert.innerHTML="✅ Low Dropout Risk! Patient engagement is stable.";
+      list.innerHTML=`
+        <li>Continue routine follow-ups</li>
+        <li>Maintain regular communication</li>
+        <li>Reassess periodically</li>
+        <li>Encourage adherence</li>
+      `;
+    }
+  });
+}
+</script>
+
+</body>
+</html>

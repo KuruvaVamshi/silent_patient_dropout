@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Silent Dropout Patient Detector</title>
+
+<style>
+body{font-family:Arial;background:#f4f6f9;padding:30px}
+.card{background:#fff;padding:20px;border-radius:10px;max-width:900px;margin:auto;margin-bottom:20px}
+input,button{padding:8px;width:100%;margin-bottom:10px}
+button{background:#2563eb;color:white;border:none;border-radius:6px;font-size:16px}
+.metric{display:inline-block;width:22%;background:#f9fafb;padding:10px;margin:5px;text-align:center;border-radius:6px}
+.high{color:red} .medium{color:orange} .low{color:green}
+</style>
+</head>
+
+<body>
+
+<!-- INPUT FORM -->
+<div class="card">
+<h2>🩺 Silent Dropout Patient Detector</h2>
+
+<!-- USER ENTERS THESE -->
+<input id="expected_gap" type="number" placeholder="Expected Gap Between Visits (days)">
+<input id="days_since_contact" type="number" placeholder="Days Since Last Visit">
+
+<input id="refill_delay" type="number" placeholder="Medicine Refill Delay (days)">
+<input id="missed_labs" type="number" placeholder="Missed Lab Tests">
+
+<!-- AUTO CALCULATED -->
+<input id="days_late_followup" 
+       type="number" 
+       placeholder="Days Late Follow-Up (Auto)"
+       readonly>
+
+<button onclick="predict()">Predict Risk</button>
+</div>
+
+<!-- RESULT DASHBOARD -->
+<div class="card">
+<h3>Patient Summary</h3>
+
+<div>
+    <div class="metric">Late Follow-Up<br><b id="late">-</b></div>
+    <div class="metric">Refill Delay<br><b id="refill">-</b></div>
+    <div class="metric">Missed Labs<br><b id="labs">-</b></div>
+    <div class="metric">Days Since Visit<br><b id="contact">-</b></div>
+</div>
+
+<h3>Score: <span id="score">-</span></h3>
+<h3>Risk: <span id="risk">-</span></h3>
+<p id="action"></p>
+</div>
+
+<script>
+// ----------------------------------
+// AUTO CALCULATE DAYS LATE FOLLOW-UP
+// ----------------------------------
+function calculateDaysLateFollowUp(){
+
+    let daysSinceVisit =
+        Number(document.getElementById("days_since_contact").value);
+
+    let expectedGap =
+        Number(document.getElementById("expected_gap").value);
+
+    if (isNaN(daysSinceVisit) || isNaN(expectedGap)) {
+        document.getElementById("days_late_followup").value = "";
+        return;
+    }
+
+    let lateDays = daysSinceVisit - expectedGap;
+
+    // If early or on time → 0
+    lateDays = lateDays > 0 ? lateDays : 0;
+
+    document.getElementById("days_late_followup").value = lateDays;
+}
+
+// Trigger auto-update
+document.getElementById("days_since_contact")
+    .addEventListener("input", calculateDaysLateFollowUp);
+
+document.getElementById("expected_gap")
+    .addEventListener("input", calculateDaysLateFollowUp);
+
+// ----------------------------------
+// SEND TO FLASK MODEL
+// ----------------------------------
+function predict(){
+
+    let payload = {
+        refill_delay: Number(document.getElementById("refill_delay").value),
+        missed_labs: Number(document.getElementById("missed_labs").value),
+        days_late_followup: Number(document.getElementById("days_late_followup").value),
+        days_since_contact: Number(document.getElementById("days_since_contact").value)
+    };
+
+    fetch("/predict", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        document.getElementById("late").innerText = data.days_late_followup;
+        document.getElementById("refill").innerText = data.refill_delay;
+        document.getElementById("labs").innerText = data.missed_labs;
+        document.getElementById("contact").innerText = data.days_since_contact;
+
+        document.getElementById("score").innerText = data.score;
+        document.getElementById("risk").innerText = data.risk;
+        document.getElementById("risk").className = data.risk.toLowerCase();
+        document.getElementById("action").innerText = data.action;
+    });
+}
+</script>
+
+</body>
+</html>
